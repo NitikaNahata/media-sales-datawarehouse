@@ -1,0 +1,101 @@
+---
+title: "Analysis of Film and Music Sales for Media Distributors, Inc."
+author: "Nitika "
+date: "Spring 2025"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    toc_float: true
+    theme: paper
+    highlight: tango
+    df_print: kable
+    code_folding: hide
+    keep_md: true
+    fig_width: 8
+    fig_height: 5
+    fig_caption: true
+  word_document:
+    toc: true
+    toc_depth: '2'
+  pdf_document:
+    toc: true
+    toc_depth: '2'
+subtitle: Prepared by Oakland Partners
+---
+
+```{r setup, include=FALSE}
+library(DBI)
+library(RMySQL)
+library(knitr)
+library(kableExtra)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "defaultdb",
+                 host = "cs5200-practicum-2-njain980316-ab68.i.aivencloud.com",
+                 port = 28549,
+                 user = "YOUR_PWD",
+                 password = "AVNS_aaxYX8Qu3vXWhFDcv1k")
+```
+
+# Introduction
+
+This report summarizes sales insights from the integrated film and music operational databases for Media Distributors, Inc. Our goals include understanding product performance by time and country, identifying revenue trends, and profiling our customer base.
+
+# Total Revenue by Country and Product Type
+
+```{r, echo=FALSE}
+query <- "
+SELECT country_id, product_type, SUM(total_revenue) AS total_revenue
+FROM fact_sales_summary
+GROUP BY country_id, product_type
+ORDER BY total_revenue DESC
+LIMIT 10"
+df <- dbGetQuery(con, query)
+kable(df, caption = "Top 10 Country/Product Combinations by Revenue") %>%
+  kable_styling("striped", full_width = F)
+```
+
+# Revenue Trends Over Time
+
+```{r, echo=FALSE}
+query <- "
+SELECT year, quarter, product_type, SUM(total_revenue) AS total_revenue
+FROM fact_sales_summary f
+JOIN dim_time t ON f.time_id = t.time_id
+GROUP BY year, quarter, product_type
+ORDER BY year, quarter"
+df <- dbGetQuery(con, query)
+kable(df, caption = "Quarterly Revenue Trends") %>%
+  kable_styling("striped", full_width = F)
+```
+
+# Average Revenue Per Sale by Country
+
+```{r, echo=FALSE}
+query <- "
+SELECT country_id, product_type,
+       ROUND(SUM(total_revenue) / SUM(total_units_sold), 2) AS avg_revenue_per_sale
+FROM fact_sales_summary
+GROUP BY country_id, product_type
+ORDER BY avg_revenue_per_sale DESC
+LIMIT 10"
+df <- dbGetQuery(con, query)
+kable(df, caption = "Top Countries by Avg Revenue per Sale") %>%
+  kable_styling("striped", full_width = F)
+```
+
+# Customer Base by Country and Type
+
+```{r, echo=FALSE}
+query <- "
+SELECT dc.country_id, dc.customer_type, COUNT(*) AS num_customers
+FROM dim_customer dc
+GROUP BY dc.country_id, dc.customer_type
+ORDER BY num_customers DESC"
+df <- dbGetQuery(con, query)
+kable(df, caption = "Customer Distribution by Country and Type") %>%
+  kable_styling("striped", full_width = F)
+```
+
+
